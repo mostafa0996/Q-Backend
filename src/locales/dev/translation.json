@@ -123,5 +123,7 @@
  "OTP has been sent to +971558686967 mobile no": "OTP has been sent to +971558686967 mobile no",
  "comments is required": "comments is required",
  " no such file or directory, stat '/home/mostafa-khattab/Desktop/deliverq/deliverq-api/public/uploads/original/null'": " no such file or directory, stat '/home/mostafa-khattab/Desktop/deliverq/deliverq-api/public/uploads/original/null'",
- " undefined": " undefined"
+ " undefined": " undefined",
+ "from is not allowed to be empty": "from is not allowed to be empty",
+ "to is not allowed to be empty": "to is not allowed to be empty"
 }
