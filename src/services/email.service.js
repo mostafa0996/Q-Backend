@@ -49,10 +49,10 @@ const BookingCreateEmailByGen = async (to, username, subject, heading, text, lin
       }
     }
   };
-  var html = mailGenerator.generate(email);
+  // var html = mailGenerator.generate(email);
   var text = mailGenerator.generatePlaintext(email);
 
-  const msg = { from: config.email.from, to, subject, html, text, sender: 'DeloverQ' };
+  const msg = { from: config.email.from, to, subject, text, sender: 'DeloverQ' };
   await transport.sendMail(msg);
 };
 

@@ -20,8 +20,7 @@ const createRequest = catchAsync(async (req, res) => {
 
 const getRequests = catchAsync(async (req, res) => {
 
-
-  const filter = pick(req.query, ['status', 'keyword', 'requestTo', 'requestby', 'type_hour', 'duration', 'post_story', 'ad_type', 'type']);
+  const filter = pick(req.query, ['status', 'keyword', 'requestTo', 'requestby', 'type_hour', 'duration', 'post_story', 'ad_type', 'type', 'startDate', 'endDate', 'tag']);
   const options = pick(req.query, ['sortBy', 'limit', 'page']);
 
   var filters = [];
@@ -51,6 +50,28 @@ const getRequests = catchAsync(async (req, res) => {
   }
   if (filter.type) {
     filters.push({ type: filter.type })
+  }
+
+  if (
+    filter.endDate &&
+    filter.startDate &&
+    new Date(filter.startDate).toString() !== 'Invalid Date' &&
+    new Date(filter.endDate).toString() !== 'Invalid Date'
+  ) {
+    filters.push({
+      createdAt: {
+        $gte: new Date(filter.startDate),
+        $lte: new Date(
+          new Date(filter.endDate).setDate(
+            new Date(filter.endDate).getDate() + 1
+          )
+        ),
+      },
+    });
+  }
+
+  if (filter.tag && filter.tag!= 'undefined') {
+    filters.push({ name: filter.tag });
   }
 
 
