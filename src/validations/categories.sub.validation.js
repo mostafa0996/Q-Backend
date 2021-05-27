@@ -1,5 +1,5 @@
 
-const Joi = require('@hapi/joi');
+const Joi = require('joi');
 const { objectId } = require('./custom.validation');
 
 const createCategories = {

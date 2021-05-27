@@ -1,4 +1,4 @@
-const Joi = require('@hapi/joi');
+const Joi = require('joi');
 const { companyOrIndividual } = require('../config/roles');
 const { objectId } = require('./custom.validation');
 
