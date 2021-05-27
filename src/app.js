@@ -47,7 +47,7 @@ if (config.env !== 'test') {
 
 const i18next = require('i18next');
 const i18nextMiddleware = require('i18next-express-middleware');
-const Backend = require('i18next-node-fs-backend');
+const Backend = require('i18next-fs-backend');
 var fs = require('fs');
 
 

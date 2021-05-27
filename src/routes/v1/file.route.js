@@ -1,7 +1,7 @@
 const express = require('express');
 const imageController = require('../../controllers/file.controller');
 const router = express.Router();
-const uniqueString = require('unique-string');
+const {nanoid: uniqueString} = require('nanoid');
 var fs = require('fs');
 const path = require('path');
 var base64ToImage = require('base64-to-image')

@@ -16,7 +16,7 @@ const fileRoute = require('./file.route');
 const homeRoute = require('./deliveryQ.route');
 const bannersRoute = require('./banners.route');
 const notificaitonsRoute = require('./notification.route');
-const docsRoute = require('./docs.route');
+// const docsRoute = require('./docs.route');
 const costRoute = require('./cost.route');
 const contactRoute = require('./contact.route');
 const subscribersRoute = require('./subscribers.route');
@@ -67,7 +67,7 @@ router.use('/homeContent', homeContentRoute);
 
 router.use('/deliveryQ', homeRoute);
 
-router.use('/docs', docsRoute);
+// router.use('/docs', docsRoute);
 
 
 
