@@ -12,7 +12,7 @@ const addressRoute = require('./address.route');
 const requestRoute = require('./request.route');
 const shipmentsRoute = require('./shipments.route');
 
-const fileRoute = require('./file.route');
+// const fileRoute = require('./file.route');
 const homeRoute = require('./deliveryQ.route');
 const bannersRoute = require('./banners.route');
 const notificaitonsRoute = require('./notification.route');
@@ -47,7 +47,7 @@ router.use('/advantage', advantageRoute);
 router.use('/address', addressRoute);
 router.use('/request', requestRoute);
 router.use('/shipments', shipmentsRoute);
-router.use('/file', fileRoute);
+// router.use('/file', fileRoute);
 router.use('/banners', bannersRoute);
 router.use('/notificaitons', notificaitonsRoute);
 router.use('/contact', contactRoute);

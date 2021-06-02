@@ -1,5 +1,5 @@
 const express = require('express');
-const imageController = require('../../controllers/file.controller');
+// const imageController = require('../../controllers/file.controller');
 const router = express.Router();
 const {nanoid: uniqueString} = require('nanoid');
 var fs = require('fs');
@@ -369,5 +369,5 @@ router.post('/pdf', upload_file.single('pdf'), async function (req, res, next) {
 
 });
 
-router.get('/get/:filename', imageController.getImage);
+// router.get('/get/:filename', imageController.getImage);
 module.exports = router;
