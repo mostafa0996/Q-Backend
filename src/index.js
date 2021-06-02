@@ -13,7 +13,7 @@ const options = {
   ca: fs.readFileSync('./server-deliverq.com/gd_bundle-g2-g1.crt', 'utf8'),
 };
 
-httpsserver = require("https").createServer(options, app);
+httpsserver = require("http").createServer(options, app);
 
 
 mongoose.connect(config.mongoose.url, config.mongoose.options).then(() => {
