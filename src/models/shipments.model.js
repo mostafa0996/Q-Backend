@@ -70,8 +70,6 @@ const Schema = mongoose.Schema(
     other: {
       type: Number,
       default: 0,
-      enum: [0, 1],
-      default: 0,
     },
     weight: {
       type: String,

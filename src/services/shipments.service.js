@@ -24,7 +24,6 @@ const createShipments = async (userBody, req) => {
 
 const queryShipments = async (filter, options, req) => {
 
-  console.log(!req.user || req.user.role === normal || req.user.role === driver)
   if (!req.user || req.user.role === normal || req.user.role === driver) {
     const object = await Shipments.paginateuser(filter, options, req);
     return object;
@@ -52,6 +51,24 @@ const getShipmentsById = async (id, req) => {
   } else {
     const objectShipment = await Shipments.paginateadmin(filters, options, req);
     return objectShipment.results[0];
+  }
+
+
+};
+
+const getShipmentsByIds = async (ids, req) => {
+  const options = pick(req.query, ['sortBy', 'limit', 'page']);
+
+  var filters = [];
+    filters.push({ _id: {$in : ids} })
+
+
+  if (!req.user || req.user.role === normal) {
+    const objectShipment = await Shipments.paginateuser(filters, options, req);
+    return objectShipment.results;
+  } else {
+    const objectShipment = await Shipments.paginateadmin(filters, options, req);
+    return objectShipment.results;
   }
 
 
@@ -115,4 +132,5 @@ module.exports = {
   getShipmentsById,
   updateShipmentsById,
   deleteShipmentsById,
+  getShipmentsByIds
 }

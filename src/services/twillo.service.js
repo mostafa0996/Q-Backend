@@ -13,7 +13,7 @@ const sendOTP = async (phone, language) => {
     let verificationRequest = await twilio.verify.services(config.VERIFICATION_SID)
       .verifications
       .create({
-        to: '+971' + phone, channel: 'sms', locale: language ? language : 'en',
+        to:  '+201002192057', channel: 'sms', locale: language ? language : 'en',
         // customMessage: '*this code will be active for 10 minutes'
       });
     return verificationRequest;
@@ -32,7 +32,7 @@ const Verify = async (code, phone) => {
   try {
     var verificationResult = await twilio.verify.services(config.VERIFICATION_SID)
       .verificationChecks
-      .create({ code, to: '+971' + phone });
+      .create({ code, to: '+201002192057'});
     if (verificationResult.status === 'approved') {
       return true;
     } else {
@@ -51,14 +51,14 @@ const sendSMSNotification = async (phone, message) => {
   try {
     console.log({
       body: message,
-      from: '+12283357940',
-      to: '+971' + phone,
+      from: '+201093993975',
+      to: '201002192057',
     })
     twilio.messages
       .create({
-        from: '+12283357940',
+        from: '+201093993975',
         body: message,
-        to: '+971' + phone
+        to: '+201002192057'
       })
       .then(message => console.log(message.sid)).catch((error) => { console.log(error) });
 

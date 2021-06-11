@@ -30,7 +30,7 @@ const createUser = async (userBody) => {
 
 const createUserGuest = async (userBody) => {
 
-  var user = await getUserByEmail(userBody.email, normal)
+  var user = await getUserByEmail(userBody.email, normal);
   if (user) {
     return user;
   } else {
@@ -74,7 +74,6 @@ const createUserSocial = async (userBody, req) => {
   if (await User.isEmailTaken(userBody.email)) {
     const user = await getUserByEmail(userBody.email);
     delete userBody.password;
-    console.log(userBody);
     const updated = await updateUserById(user._id, userBody, req);
     return updated;
   } else {

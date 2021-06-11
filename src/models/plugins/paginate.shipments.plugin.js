@@ -6,12 +6,12 @@ const paginate = (schema) => {
 
 
     const sort = {};
-    if (options.sortBy) {
-      const parts = options.sortBy.split(':');
-      sort[parts[0]] = parts[1] === 'desc' ? -1 : 1;
-    } else {
+    // if (options.sortBy) {
+    //   const parts = options.sortBy.split(':');
+    //   sort[parts[0]] = parts[1] === 'desc' ? -1 : 1;
+    // } else {
       sort.createdAt = -1;
-    }
+    // }
     options.page = Number(options.page) + 1;
     const limit = options.limit && parseInt(options.limit, 10) > 0 ? parseInt(options.limit, 10) : 10;
     const page = options.page && parseInt(options.page, 10) > 0 ? parseInt(options.page, 10) : 1;

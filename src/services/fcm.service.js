@@ -18,8 +18,6 @@ const sendNotificaitonToSingleUser = async (body) => {
 };
 
 
-
-
 const sendAll = async (perms) => {
   var messageObj = {};
   messageObj.data = perms.data;
@@ -73,9 +71,6 @@ const send = async (perms) => {
 
   sendNotificaitonToSingleUser(messageObj);
 };
-
-
-
 
 module.exports = {
   sendNotificaitonToSingleUser,

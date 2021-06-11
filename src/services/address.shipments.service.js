@@ -24,7 +24,6 @@ const createAddress = async (Body, req) => {
     type: Body.type,
     user: Body.user,
   });
-  console.log(object)
   req.query._id = object._id;
   const filter = pick(req.query, ['_id']);
   const options = pick(req.query, ['sortBy', 'limit', 'page']);

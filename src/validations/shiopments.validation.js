@@ -18,7 +18,7 @@ const query = {
 };
 const create = {
   body: Joi.object().keys({
-    comments: Joi.when('other', { is: 1, then: Joi.string().required(), otherwise: Joi.string().allow('') }),
+    comments: Joi.when('other', { is: 1, then: Joi.string().required(), otherwise: Joi.string().allow(null) }),
     from: Joi.string().custom(objectId).required(),
     to: Joi.string().custom(objectId).required(),
     type: Joi.string().custom(objectId).required(),
@@ -47,12 +47,12 @@ const createGuest = {
     otp: Joi.string().required(),
 
     shipment: Joi.object().keys({
-      comments: Joi.when('other', { is: 1, then: Joi.string().required(), otherwise: Joi.string().allow('') }),
+      comments: Joi.when('other', { is: 1, then: Joi.string().required(), otherwise: Joi.string().allow(null) }),
       type: Joi.string().custom(objectId).required(),
       subCategory: Joi.string().custom(objectId).required(),
       status: Joi.number().default(0),
-      other: Joi.number().default(0).required(),
-      cost: Joi.number().default(0).required(),
+      other: Joi.number().required(),
+      cost: Joi.number().required(),
       weight: Joi.string().allow(''),
       deliveryDate: Joi.date().default(new Date().toISOString()),
     }).required(),

@@ -23,109 +23,110 @@ const notificationService = require('../services/notification.service');
 const config = require('../config/config');
 
 const createShipmentsGuest = catchAsync(async (req, res) => {
-  await twilloService.Verify(req.body.otp, req.body.user.phone);
+  try {
+    await twilloService.Verify(req.body.otp, req.body.user.phone);
 
-  const user = await userService.createUserGuest(req.body.user);
+    const user = await userService.createUserGuest(req.body.user);
 
-  req.body.from.user = user.id;
-  req.body.to.user = user.id;
+    req.body.from.user = user.id;
+    req.body.to.user = user.id;
 
-  await addressShipmentsService.createAddress(req.body.from, req);
-  await addressShipmentsService.createAddress(req.body.to, req);
+    await addressShipmentsService.createAddress(req.body.from, req);
+    await addressShipmentsService.createAddress(req.body.to, req);
 
-  const from = await addressShipmentsService.createAddress(req.body.from, req);
-  const to = await addressShipmentsService.createAddress(req.body.to, req);
+    const from = await addressShipmentsService.createAddress(
+      req.body.from,
+      req
+    );
+    const to = await addressShipmentsService.createAddress(req.body.to, req);
 
-  console.log(user.id, from._id, to._id);
+    req.body.shipment.from = from._id;
+    req.body.shipment.to = to._id;
 
-  req.body.shipment.from = from._id;
-  req.body.shipment.to = to._id;
+    // generate tag
+    var TAG =
+      moment(new Date()).format('YY') +
+      moment(new Date()).format('DD') +
+      moment(new Date()).format('mm') +
+      formatNumberLength(await Shipments.countDocuments());
+    req.body.shipment.tag = TAG;
 
-  // generate tag
-  var TAG =
-    moment(new Date()).format('YY') +
-    moment(new Date()).format('DD') +
-    moment(new Date()).format('mm') +
-    formatNumberLength(await Shipments.countDocuments());
-  req.body.shipment.tag = TAG;
+    // to get user form token if there is any normal user creating this request if admin createing this request check if he us passsing user id or not.
+    if (user) {
+      req.body.shipment.user = user._id ? user._id : user.id;
+    } else {
+      throw new ApiError(
+        httpStatus.NOT_FOUND,
+        'something went wrong while creating guest user'
+      );
+    }
 
-  // to get user form token if there is any normal user creating this request if admin createing this request check if he us passsing user id or not.
-  if (user) {
-    req.body.shipment.user = user._id ? user._id : user.id;
-  } else {
+    const shipmemt = await shipmentsService.createShipments(
+      req.body.shipment,
+      req
+    );
+    res.status(httpStatus.CREATED).send(shipmemt);
+
+    if (shipmemt && shipmemt.userObj.fcm.length !== 0) {
+      var message = `We received your shipment request and will be processed soon.
+    You can track your order through our DeliverQ mobile app or visit deliverQ.com, TrackingId#${shipmemt.tag}`;
+      // twilloService.sendSMSNotification(`+201002192057`, message);
+      message = `We received your shipment request and will be processed soon. You can track your order through our DeliverQ mobile app or visit deliverQ.com`;
+      // fcmService.send({
+      //   fcm: Array.from(shipmemt.userObj.fcm),
+      //   title: 'Shipment Request',
+      //   description: message,
+      //   data: {
+      //     id: String(shipmemt._id),
+      //     link:
+      //       'https://www.deliverq.com/dashboard/pages/shipment-details/' +
+      //       shipmemt._id +
+      //       '/' +
+      //       new Date().toISOString(),
+      //   },
+      // });
+    }
+
+    // notificationService.createNotifications({
+    //   title_en: i18next.t('Shipment Request'),
+    //   title_ar: i18next.t('Shipment Request'),
+    //   description_en:
+    //     i18next.t(
+    //       'We received your shipment request and will be processed soon. You can track your order through our DeliverQ mobile app or visit deliverQ.com'
+    //     ) + '.',
+    //   description_ar:
+    //     i18next.t(
+    //       'We received your shipment request and will be processed soon. You can track your order through our DeliverQ mobile app or visit deliverQ.com'
+    //     ) + '.',
+    //   actionurl: shipmemt._id,
+    //   actionData: shipmemt._id,
+    //   user: shipmemt.userObj.id ? shipmemt.userObj.id : shipmemt.userObj._id,
+    // });
+    emailService.BookingCreateEmailByGen(
+      shipmemt.userObj.email,
+      shipmemt.userObj.first_name,
+      i18next.t('Shipment Request'),
+      i18next.t('Thanks for choosing DeliverQ Portal'),
+      i18next.t(
+        'We received your shipment request and your shipment is initiated, you can track your shipment by clicking on below track button.'
+      ),
+      config.WEBSITE + '/tracking/' + req.body.tag,
+      req.body.tag
+    );
+
+    // scheduling this request for companies
+    const lastlimitForLogs = await ShipmentsLogs.find({
+      shipment: new mongoose.Types.ObjectId(shipmemt._id),
+      status: { $ne: 0 },
+    });
+    CrowdJobForShipments(req, shipmemt, lastlimitForLogs.length);
+  } catch (error) {
+    console.log(JSON.stringify(error, null, 2));
     throw new ApiError(
-      httpStatus.NOT_FOUND,
-      'something went wrong while creating guest user'
+      error.status || httpStatus.INTERNAL_SERVER_ERROR,
+      'failed to create shipment'
     );
   }
-
-  const shipmemt = await shipmentsService.createShipments(
-    req.body.shipment,
-    req
-  );
-  res.status(httpStatus.CREATED).send(shipmemt);
-
-  if (shipmemt && shipmemt.userObj.fcm.length !== 0) {
-    var message =
-      i18next.t(
-        'We received your shipment request and will be processed soon. You can track your order through our DeliverQ mobile app or visit deliverQ.com'
-      ) +
-      '. \n\nTrackingId# ' +
-      shipmemt.tag;
-    twilloService.sendSMSNotification(`+201002192057`, message);
-    message =
-      i18next.t(
-        'We received your shipment request and will be processed soon. You can track your order through our DeliverQ mobile app or visit deliverQ.com'
-      ) + '.';
-    fcmService.send({
-      fcm: Array.from(shipmemt.userObj.fcm),
-      title: i18next.t('Shipment Request'),
-      description: message,
-      data: {
-        id: String(shipmemt._id),
-        link:
-          'https://www.deliverq.com/dashboard/pages/shipment-details/' +
-          shipmemt._id +
-          '/' +
-          new Date().toISOString(),
-      },
-    });
-  }
-
-  notificationService.createNotifications({
-    title_en: i18next.t('Shipment Request'),
-    title_ar: i18next.t('Shipment Request'),
-    description_en:
-      i18next.t(
-        'We received your shipment request and will be processed soon. You can track your order through our DeliverQ mobile app or visit deliverQ.com'
-      ) + '.',
-    description_ar:
-      i18next.t(
-        'We received your shipment request and will be processed soon. You can track your order through our DeliverQ mobile app or visit deliverQ.com'
-      ) + '.',
-    actionurl: shipmemt._id,
-    actionData: shipmemt._id,
-    user: shipmemt.userObj.id ? shipmemt.userObj.id : shipmemt.userObj._id,
-  });
-  console.log(shipmemt.userObj);
-  emailService.BookingCreateEmailByGen(
-    shipmemt.userObj.email,
-    shipmemt.userObj.first_name,
-    i18next.t('Shipment Request'),
-    i18next.t('Thanks for choosing DeliverQ Portal'),
-    i18next.t(
-      'We received your shipment request and your shipment is initiated, you can track your shipment by clicking on below track button.'
-    ),
-    config.WEBSITE + '/tracking/' + req.body.tag,
-    req.body.tag
-  );
-
-  // scheduling this request for companies
-  const lastlimitForLogs = await ShipmentsLogs.find({
-    shipment: new mongoose.Types.ObjectId(shipmemt._id),
-    status: { $ne: 0 },
-  });
-  CrowdJobForShipments(req, shipmemt, lastlimitForLogs.length);
 });
 
 const otpSend = catchAsync(async (req, res) => {
@@ -161,7 +162,6 @@ const createShipments = catchAsync(async (req, res) => {
   var fromBackup = await addressService.getAddressById(req.body.from);
   var tobackup = await addressService.getAddressById(req.body.to);
 
-  console.log('req.body', fromBackup.name, fromBackup, !fromBackup.name);
   delete fromBackup._id;
   delete tobackup._id;
   if (!fromBackup.name) {
@@ -178,7 +178,6 @@ const createShipments = catchAsync(async (req, res) => {
   req.body.to = to.id ? to.id : to._id;
 
   const shipmemt = await shipmentsService.createShipments(req.body, req);
-  console.log('req.body', req.body);
   res.status(httpStatus.CREATED).send(shipmemt);
 
   // scheduling this request for companies
@@ -221,24 +220,24 @@ const createShipments = catchAsync(async (req, res) => {
       ) +
       '. \n\nTrackingId# ' +
       shipmemt.tag;
-    twilloService.sendSMSNotification(shipmemt.userObj.phone, message);
+    // twilloService.sendSMSNotification(shipmemt.userObj.phone, message);
     message =
       i18next.t(
         'We received your shipment request and will be processed soon. You can track your order through our DeliverQ mobile app or visit deliverQ.com'
       ) + '.';
-    fcmService.send({
-      fcm: Array.from(shipmemt.userObj.fcm),
-      title: 'DeliverQ',
-      description: message,
-      data: {
-        id: String(shipmemt._id),
-        link:
-          'https://www.deliverq.com/dashboard/pages/shipment-details/' +
-          shipmemt._id +
-          '/' +
-          new Date().toISOString(),
-      },
-    });
+    // fcmService.send({
+    //   fcm: Array.from(shipmemt.userObj.fcm),
+    //   title: 'DeliverQ',
+    //   description: message,
+    //   data: {
+    //     id: String(shipmemt._id),
+    //     link:
+    //       'https://www.deliverq.com/dashboard/pages/shipment-details/' +
+    //       shipmemt._id +
+    //       '/' +
+    //       new Date().toISOString(),
+    //   },
+    // });
   }
 
   await LocationUpdates(req, shipmemt);
@@ -310,6 +309,7 @@ const CrowdJobForShipments = async (req, shipmemt, lastlimitForLogs) => {
 
   if (shipmemt.shipmentslogs.length) {
     for (let k in shipmemt.shipmentslogs) {
+      console.log(shipmemt.shipmentslogs[k].to);
       if (shipmemt.shipmentslogs[k].to)
         keywords.push({
           _id: {
@@ -324,10 +324,10 @@ const CrowdJobForShipments = async (req, shipmemt, lastlimitForLogs) => {
   }
 
   // console.log(shipmemt);
-  console.log({
-    lat: Number(shipmemt.fromObj.lat),
-    lng: Number(shipmemt.fromObj.lng),
-  });
+  // console.log({
+  //   lat: Number(shipmemt.fromObj.lat),
+  //   lng: Number(shipmemt.fromObj.lng),
+  // });
   var result = await userService.queryUsersByDistance(
     keywords,
     options,
@@ -341,8 +341,6 @@ const CrowdJobForShipments = async (req, shipmemt, lastlimitForLogs) => {
     if (a.calculated > b.calculated) return 1;
     return 0;
   });
-
-  console.log(result.results.length);
 
   if (result.results.length > 0) {
     for (let k in result.results) {
@@ -399,6 +397,10 @@ const CrowdJobForShipments = async (req, shipmemt, lastlimitForLogs) => {
 };
 
 const assignAdmin = async (req, shipmemtId) => {
+  console.log(' from assignAdmin function');
+  console.log(JSON.stringify(req, null, 2));
+  console.log(' from assignAdmin function');
+
   await shipmentsService.updateShipmentsById(
     shipmemtId,
     { assignedStatus: -1 },
@@ -416,24 +418,24 @@ const checkIfPossibleToMove = async (shipment, company, lastlimitForLogs) => {
       status: 0,
       shipment: shipment._id,
     });
-    twilloService.sendSMSNotification(
-      company.phone,
-      i18next.t('Hi there') +
-        ',\n' +
-        i18next.t('You have new shipment request from DeliverQ') +
-        ' \n' +
-        config.DASHBOARD +
-        '/pages/shipment-details/' +
-        shipment._id +
-        '/' +
-        new Date().toISOString() +
-        '\n' +
-        i18next.t('Happy delivering…') +
-        '\n' +
-        i18next.t('Regards') +
-        ',\n' +
-        i18next.t('Team DeliverQ')
-    );
+    // twilloService.sendSMSNotification(
+    //   company.phone,
+    //   i18next.t('Hi there') +
+    //     ',\n' +
+    //     i18next.t('You have new shipment request from DeliverQ') +
+    //     ' \n' +
+    //     config.DASHBOARD +
+    //     '/pages/shipment-details/' +
+    //     shipment._id +
+    //     '/' +
+    //     new Date().toISOString() +
+    //     '\n' +
+    //     i18next.t('Happy delivering…') +
+    //     '\n' +
+    //     i18next.t('Regards') +
+    //     ',\n' +
+    //     i18next.t('Team DeliverQ')
+    // );
     emailService.sendEmail(
       company.email,
       i18next.t('Shipment Request'),
@@ -456,20 +458,20 @@ const checkIfPossibleToMove = async (shipment, company, lastlimitForLogs) => {
         '</p>'
     );
     if (company.fcm.length !== 0) {
-      fcmService.send({
-        fcm: Array.from(company.fcm),
-        title: i18next.t('Shipment Request'),
-        description: i18next.t('You have new shipment request from DeliverQ'),
-        data: {
-          id: shipmentlog._id,
-          link:
-            config.DASHBOARD +
-            '/pages/shipment-details/' +
-            shipment._id +
-            '/' +
-            new Date().toISOString(),
-        },
-      });
+      // fcmService.send({
+      //   fcm: Array.from(company.fcm),
+      //   title: i18next.t('Shipment Request'),
+      //   description: i18next.t('You have new shipment request from DeliverQ'),
+      //   data: {
+      //     id: shipmentlog._id,
+      //     link:
+      //       config.DASHBOARD +
+      //       '/pages/shipment-details/' +
+      //       shipment._id +
+      //       '/' +
+      //       new Date().toISOString(),
+      //   },
+      // });
     } else {
       console.log('unable to send push notfiication fcm are here', company.fcm);
     }
@@ -485,9 +487,6 @@ const checkIfPossibleToMove = async (shipment, company, lastlimitForLogs) => {
 const delay = (ms) => new Promise((res) => setTimeout(res, ms));
 
 const getShipmentss = catchAsync(async (req, res) => {
-  console.log({
-    query: req.query
-  })
   if (req.user.role === normal) {
     req.query.user = req.user.id;
   }
@@ -534,33 +533,33 @@ const getShipmentss = catchAsync(async (req, res) => {
     filters.push({ assignedStatus: Number(filter.assignedStatus) });
   }
 
-  if (filter.user) {
+  if (filter.user && filter.user != 'undefined') {
     filters.push({ user: new mongoose.Types.ObjectId(filter.user) });
   }
-  if (filter.company) {
+  if (filter.company && filter.company != 'undefined') {
     filters.push({ company: new mongoose.Types.ObjectId(filter.company) });
   }
-  if (filter.driver) {
+  if (filter.driver && filter.driver != 'undefined') {
     filters.push({ driver: new mongoose.Types.ObjectId(filter.driver) });
   }
-  if (filter.from) {
+  if (filter.from && filter.from != 'undefined') {
     filters.push({ from: new mongoose.Types.ObjectId(filter.from) });
   }
-  if (filter.subCategory) {
+  if (filter.subCategory && filter.subCategory != 'undefined') {
     filters.push({
       subCategory: new mongoose.Types.ObjectId(filter.subCategory),
     });
   }
-  if (filter.to) {
+  if (filter.to && filter.to != 'undefined') {
     filters.push({ to: new mongoose.Types.ObjectId(filter.to) });
   }
-  if (filter.tag) {
+  if (filter.tag && filter.tag != 'undefined') {
     filters.push({ tag: filter.tag });
   }
-  if (filter.weight) {
+  if (filter.weight && filter.weight != 'undefined') {
     filters.push({ weight: filter.weight });
   }
-  if (filter.deliveryDate) {
+  if (filter.deliveryDate && filter.deliveryDate != 'undefined') {
     filters.push({
       createdAt: { $gt: filter.deliveryDate, $lt: filter.deliveryDate },
     });
@@ -583,8 +582,20 @@ const getShipmentss = catchAsync(async (req, res) => {
       },
     });
   }
-  console.log({filters: JSON.stringify(filters)})
+  let shipmentFromLogsWaitingForResponseIds = [];
+  let shipmentFromLogsWaitingForResponse = [];
+  if (req.user.role == company && filter.status == 0) {
+    shipmentFromLogsWaitingForResponseIds = await ShipmentsLogs.find({
+      to: new mongoose.Types.ObjectId(req.user._id),
+      status: 0
+    }, {shipment: 1, _id: 0});
+    shipmentFromLogsWaitingForResponseIds = shipmentFromLogsWaitingForResponseIds.map(id =>  new mongoose.Types.ObjectId(id.shipment))
+    shipmentFromLogsWaitingForResponse = await shipmentsService.getShipmentsByIds(shipmentFromLogsWaitingForResponseIds, req)
+  };
+
   const result = await shipmentsService.queryShipments(filters, options, req);
+  result.results = [ ...result.results, ...shipmentFromLogsWaitingForResponse ];
+  result.totalResults = result.totalResults + shipmentFromLogsWaitingForResponse.length
   res.send(result);
 });
 
@@ -680,7 +691,6 @@ const getShipmentByTag = catchAsync(async (req, res) => {
       'No Shipment Found with this tracking number.'
     );
   }
-  console.log(objectShipment.results[0]);
   res.send(objectShipment.results[0]);
 });
 
@@ -747,7 +757,7 @@ const updateStatus = catchAsync(async (req, res) => {
       : i18next.t(
           'You Shipment is delivered successfully with love and care. Keep shipment with DeliverQ. Stay Healthy, Thank you.'
         );
-  twilloService.sendSMSNotification(Shipments.userObj.phone, message);
+  // twilloService.sendSMSNotification(Shipments.userObj.phone, message);
   if (Shipments && Shipments.userObj.fcm.length !== 0) {
     fcmService.send({
       fcm: Array.from(Shipments.userObj.fcm),
@@ -795,7 +805,7 @@ const acceptOrReject = catchAsync(async (req, res) => {
     );
     return;
   }
-
+  console.log(latestShipmentLogDetails[0], latestShipmentLogDetails[0].status);
   if (latestShipmentLogDetails[0] && latestShipmentLogDetails[0].status) {
     res.send(
       response(httpStatus.OK, i18next.t('request already accpeted'), null)
@@ -814,7 +824,7 @@ const acceptOrReject = catchAsync(async (req, res) => {
     return;
   }
 
-  if (req.body.status === 1) {
+  if (req.body.status === '1') {
     const Shipments = await shipmentsLogsService.updateShipmentsById(
       latestShipmentLogDetails[0]._id,
       { status: req.body.status },
@@ -882,7 +892,6 @@ const cancelShipment = catchAsync(async (req, res) => {
     return;
   }
 
-  console.log(latestShipmentLogDetails[0].status);
   if (latestShipmentLogDetails[0].status === 3) {
     res.send(
       response(
