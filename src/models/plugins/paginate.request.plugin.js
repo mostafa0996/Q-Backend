@@ -24,8 +24,6 @@ const paginate = (schema) => {
       agrigateFilters.push({ $match: filter[k] })
     }
 
-    console.log(agrigateFilters)
-
     var filters = {};
     if (filter.length > 0) {
       filters = { $and: filter };
@@ -98,20 +96,18 @@ const paginate = (schema) => {
       filters = { $and: filter };
     }
 
-    const countPromise = await this.aggregate([{ $count: "count" }, ...agrigateFilters]);
+    // const countPromise = await this.aggregate([{ $count: "count" }, ...agrigateFilters]);
     const docsPromise = this.aggregate(agrigateFilters).sort(sort).skip(skip).limit(limit);
 
-
-    return Promise.all([countPromise[0]['count'], docsPromise]).then((values) => {
-      var [totalResults, results] = values;
-      console.log(totalResults)
-      const totalPages = Math.ceil(totalResults / limit);
+    return Promise.all([docsPromise]).then((values) => {
+      var [results] = values;
+      // console.log(totalResults)
+      // const totalPages = Math.ceil(totalResults / limit);
       const result = {
         results,
         page,
         limit,
-        totalPages,
-        totalResults,
+        // totalPages,
       };
       return Promise.resolve(result);
     });

@@ -18,8 +18,6 @@ const createContact = catchAsync(async (req, res) => {
 
 
 const getContacts = catchAsync(async (req, res) => {
-
-
   const filter = pick(req.query, ['status', 'keyword', 'type', 'startDate', 'endDate', 'tag']);
   const options = pick(req.query, ['sortBy', 'limit', 'page']);
 
